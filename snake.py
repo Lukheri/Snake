@@ -25,6 +25,10 @@ class SNAKE:
         self.body_vertical = pygame.image.load("Graphics/Snake_Body/body_vertical.png").convert_alpha()
         self.body_horizontal = pygame.image.load("Graphics/Snake_Body/body_horizontal.png").convert_alpha()
 
+        self.bump = pygame.mixer.Sound("Sounds/bump.wav")
+        self.eat_sound = pygame.mixer.Sound("Sounds/crunch.wav")
+        self.eat_sound.set_volume(0.3)
+
     def movement(self):
         if self.eat:
             bodycopy = self.body[:]
@@ -57,10 +61,14 @@ class SNAKE:
                 elif prev_block.y == next_block.y:
                     screen.blit(self.body_horizontal, block_rect)
                 else:
-                    pass
-
-            # else:
-            #     pygame.draw.rect(screen, (255, 0, 0), block_rect)
+                    if (prev_block.x == -1 and next_block.y == -1) or (prev_block.y == -1 and next_block.x == -1):
+                        screen.blit(self.body_tl, block_rect)
+                    elif (prev_block.x == 1 and next_block.y == -1) or (prev_block.y == -1 and next_block.x == 1):
+                        screen.blit(self.body_tr, block_rect)
+                    elif (prev_block.x ==-1 and next_block.y == 1) or (prev_block.y == 1 and next_block.x == -1):
+                        screen.blit(self.body_bl, block_rect)
+                    elif (prev_block.x == 1 and next_block.y == 1) or (prev_block.y == 1 and next_block.x == 1):
+                        screen.blit(self.body_br, block_rect)
         
     def update_tail(self):
         tailr = self.body[len(self.body)-2] - self.body[len(self.body)-1]
@@ -76,6 +84,8 @@ class SNAKE:
         elif headr == Vector2(0, 1): self.head = self.head_up
         elif headr == Vector2(0, -1): self.head = self.head_down
 
+    def play_eat_sound(self):
+        self.eat_sound.play()
 
     def addblock(self):
         self.eat = True
@@ -85,7 +95,7 @@ class FOOD:
         self.spawn()
 
     def draw_food(self):
-        food_rect = pygame.Rect(self.pos.x*cell_size, self.pos.y*cell_size, cell_size, cell_size)
+        food_rect = pygame.Rect((self.pos.x*cell_size)+3, (self.pos.y*cell_size)+3, cell_size, cell_size)
         screen.blit(self.image, food_rect)
 
     def spawn(self):
@@ -110,13 +120,20 @@ class MAIN:
         self.check_fail()
 
     def draw_elements(self):
+        self.draw_grass()
         self.snake.draw_snake()
         self.food.draw_food()
-    
+        self.show_score()
+
     def collision(self):
         if self.food.pos == self.snake.body[0]:
             self.food.spawn()
             self.snake.addblock()
+            self.snake.play_eat_sound()
+        
+        for block in self.snake.body[1:]:
+            if block == self.food.pos:
+                self.food.spawn()
     
     def check_fail(self):
         if not 0 <= self.snake.body[0].x < cell_number or not 0 <= self.snake.body[0].y < cell_number:
@@ -125,6 +142,25 @@ class MAIN:
         for block in self.snake.body[1:]:
             if block == self.snake.body[0]:
                 self.game_over()
+
+    def draw_grass(self):
+        dark_grass_color = (167, 209, 61)
+        for row in range(cell_number):
+            if row%2 == 0:
+                for col in range(cell_number):
+                    if col%2 == 0:
+                        grass_rect = pygame.Rect(col*cell_size, row*cell_size, cell_size, cell_size)
+                        pygame.draw.rect(screen, dark_grass_color, grass_rect)
+            else:
+                for col in range(cell_number):
+                    if col%2 != 0:
+                        grass_rect = pygame.Rect(col*cell_size, row*cell_size, cell_size, cell_size)
+                        pygame.draw.rect(screen, dark_grass_color, grass_rect)                 
+
+    def show_score(self):
+        font = pygame.font.Font("Font/Snake Chan.ttf", 30)
+        score = font.render("Score: " + str(len(self.snake.body)-3), True, (255, 255, 255))
+        screen.blit(score, (0, 3))
 
     def game_over(self):
         pygame.quit()
