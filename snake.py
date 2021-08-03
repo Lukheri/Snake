@@ -29,20 +29,19 @@ class SNAKE:
         self.eat_sound = pygame.mixer.Sound("Sounds/crunch.wav")
         self.eat_sound.set_volume(0.3)
 
-    # def idle(self):
-    #     bodycopy = self.body[:-1]   
-    #     bodycopy.insert(0, bodycopy[0] + self.direction)
-    #     self.body = bodycopy
+    def idle(self):
+        bodycopy = self.body[:-1]   
+        bodycopy.insert(0, bodycopy[0] + self.direction)
+        self.body = bodycopy
 
-    #     if self.body[0] == Vector2(18, 14):
-    #         self.direction = Vector2(0, 1)
-    #     elif self.body[0] == Vector2(18, 18):
-    #         self.direction = Vector2(-1, 0)
-    #     elif self.body[0] == Vector2(2, 18):
-    #         self.direction = Vector2(0, -1)
-    #     elif self.body[0] == Vector2(2, 14):
-    #         self.direction = Vector2(1, 0)
-    #     pass
+        if self.body[0] == Vector2(16, 14):
+            self.direction = Vector2(0, 1)
+        elif self.body[0] == Vector2(16, 18):
+            self.direction = Vector2(-1, 0)
+        elif self.body[0] == Vector2(3, 18):
+            self.direction = Vector2(0, -1)
+        elif self.body[0] == Vector2(3, 14):
+            self.direction = Vector2(1, 0)
 
     def movement(self):
         if self.eat:
@@ -189,20 +188,24 @@ class MAIN:
                 for col in range(cell_number):
                     if col%2 != 0:
                         grass_rect = pygame.Rect(col*cell_size, row*cell_size, cell_size, cell_size)
-                        pygame.draw.rect(screen, dark_grass_color, grass_rect)                 
+                        pygame.draw.rect(screen, dark_grass_color, grass_rect)          
 
-    def show_score(self):
+    def show_score(self):        
         font = pygame.font.Font("Font/Snake Chan.ttf", 30)
         score = font.render("Score: " + str(self.score), True, (38, 59, 44))
         screen.blit(score, (0, 3))
 
 class MENU:
     def __init__(self):
+        self.play1 = pygame.image.load("Graphics/multimedia.png").convert_alpha()
+        self.play2 = pygame.image.load("Graphics/multimedia1.png").convert_alpha()
+
         self.title_font = pygame.font.Font("Font/Snake Chan.ttf", 175)
         self.title = self.title_font.render("SNAKE", True, (3, 145, 41))
         self.title_rect = self.title.get_rect(center = (400, 200))
-        self.play_img = pygame.image.load("Graphics/multimedia.png").convert_alpha()
+        self.play_img = self.play1
         self.play_rect = self.play_img.get_rect(center = (400, 400))
+        self.click_sound = pygame.mixer.Sound("Sounds/click.wav")
     
     def draw(self):
         screen.blit(self.title, self.title_rect)
@@ -214,6 +217,10 @@ cell_number = 20
 screen = pygame.display.set_mode((cell_number*cell_size, cell_number*cell_size))
 clock = pygame.time.Clock()
 
+pygame.display.set_caption("Snek")
+icon = pygame.image.load("Graphics/snake.png")
+pygame.display.set_icon(icon)
+
 main = MAIN()
 menu = MENU()
 
@@ -223,30 +230,43 @@ SCREEN_UPDATE = pygame.USEREVENT
 pygame.time.set_timer(SCREEN_UPDATE, 100)
 
 while True:
+    screen.fill((175, 215, 70))
+    main.draw_grass()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-
+         
         if not main.game_active:
-            # if event.type == SCREEN_UPDATE:
-            #     main.snake.idle()
+            if event.type == SCREEN_UPDATE:
+                main.snake.idle()
+
+            if menu.play_rect.collidepoint(pygame.mouse.get_pos()):
+                menu.play_img = menu.play2
+            else:
+                menu.play_img = menu.play1
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse1 = pygame.mouse.get_pressed()
-                if menu.play_rect.collidepoint(event.pos) and mouse1 == (True, False, False):
+                if menu.play_rect.collidepoint(event.pos) and mouse1[0]:
                     main.game_active = True
                     main.score = 0
                     main.bgm.play(loops = -1)
+                    menu.click_sound.play()
+                    main.gameover.stop()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     main.game_active = True
                     main.score = 0  
+                    menu.click_sound.play()
                     main.bgm.play(loops = -1)
+                    main.gameover.stop()
 
         else:  
             if event.type == SCREEN_UPDATE:
                 main.update()
-                pressing = False  
+                pressing = False 
             if event.type == pygame.KEYDOWN:
                 if not pressing:
                     if (event.key == pygame.K_UP or event.key == pygame.K_w) and main.snake.direction != Vector2(0, 1):
@@ -259,15 +279,10 @@ while True:
                         main.snake.direction = Vector2(1, 0)
                     pressing = True
 
-        
-
-    screen.fill((175, 215, 70))
-    main.draw_grass()
-
     if not main.game_active:
         menu.draw()
         main.show_score()
-        # main.snake.draw_snake()
+        main.snake.draw_snake()
 
     else:
         main.draw_elements()
